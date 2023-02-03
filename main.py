@@ -2,37 +2,81 @@ import os
 import json
 import logging
 import asyncio
+import aiohttp
 
-from telegram import Bot
-from telegram.ext import Application
+from datetime       import datetime
+from telegram       import Bot
+from telegram.ext   import Application
 
 def hide_sensitive(data, visible_symbols = 4):
     tmp_str = str(data)
     tmp_str = '*' * (len(tmp_str) - visible_symbols) + tmp_str[-visible_symbols:]
     return tmp_str
 
-async def bank_check_loop(bot: Bot, users):
-    while(True):
+def gather_usefull_info(record={}):
+    return {
+        "time": datetime.fromtimestamp(record["time"]),
+        "description": record["description"],
+        "mcc": record["mcc"],
+        "amount": record["amount"]/100.0,
+        "balance": record["balance"]/100.0,
+    }
 
-        for user_id in users:
-            await bot.send_message(chat_id=user_id, text="HI!")
+async def bank_check_loop(bot: Bot, allowed_users, bank_token, bank_account_token):
+
+    last_checked_timestamp = datetime(2023, 1, 29, 0, 0, 0)
+    
+    api_url=f"https://api.monobank.ua/personal/statement/{bank_account_token}/"
+
+    async with aiohttp.ClientSession(headers={"X-Token": bank_token}) as session:
+        while(True):
+
+            url = api_url+last_checked_timestamp.strftime('%s')
+
+            async with session.get(url=url) as resp:
+
+                records = await resp.json()
+
+                for record in records:
+                    parsed_record = gather_usefull_info(record)
             
-        await asyncio.sleep(60)
+                    for user_id in allowed_users:
+                        await bot.send_message(
+                            chat_id=user_id,
+                            text=str(parsed_record)
+                        )
+
+            last_checked_timestamp = datetime.now()
+
+            await asyncio.sleep(60)
 
 async def main():
     logging.basicConfig(level=logging.INFO)
 
+    BANK_TOKEN = os.environ["BANK_TOKEN"]
+    logging.info(f"BANK_TOKEN: {hide_sensitive(BANK_TOKEN)}")
+    
+    BANK_ACCOUNT_TOKEN = os.environ["BANK_ACCOUNT_TOKEN"]
+    logging.info(f"BANK_ACCOUNT_TOKEN: {hide_sensitive(BANK_ACCOUNT_TOKEN)}")
+
     TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
     logging.info(f"TELEGRAM_BOT_TOKEN: {hide_sensitive(TELEGRAM_BOT_TOKEN)}")
 
-    users = json.loads(os.environ["USERLIST"])
-    logging.info(f"User: { [hide_sensitive(user, 3) for user in users] }")
+    ALLOWED_USERS = json.loads(os.environ["ALLOWED_USERS"])
+    logging.info(f"ALLOWED_USERS: { [hide_sensitive(user, 3) for user in ALLOWED_USERS] }")
     
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     async with application:
 
-        bank_check_loop_task = asyncio.create_task(bank_check_loop(application.bot, users))
+        bank_check_loop_task = asyncio.create_task(
+            bank_check_loop(
+                application.bot,
+                ALLOWED_USERS,
+                BANK_TOKEN,
+                BANK_ACCOUNT_TOKEN
+                )
+        )
 
         await application.start()
 
