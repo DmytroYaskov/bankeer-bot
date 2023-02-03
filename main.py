@@ -62,11 +62,12 @@ async def bank_check_loop(bot: Bot, allowed_users, bank_token, bank_account_toke
 
                 for record in records:
                     parsed_record = gather_usefull_info(record)
+                    pretty_msg = format_json_response(parsed_record)
             
                     for user_id in allowed_users:
                         await bot.send_message(
                             chat_id=user_id,
-                            text=str(parsed_record)
+                            text=pretty_msg
                         )
 
             last_checked_timestamp = datetime.now()
