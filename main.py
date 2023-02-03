@@ -4,6 +4,8 @@ import logging
 import asyncio
 import aiohttp
 
+import iso18245 as MCC
+
 from datetime       import datetime
 from telegram       import Bot
 from telegram.ext   import Application
@@ -21,6 +23,27 @@ def gather_usefull_info(record={}):
         "amount": record["amount"]/100.0,
         "balance": record["balance"]/100.0,
     }
+
+def format_json_response(record):
+    unix_time = record["time"]
+    date_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
+    
+    description = record["description"]
+    
+    mcc = record["mcc"]
+    category = MCC.get_mcc(str(mcc)).usda_description
+
+    amount = record["amount"]
+
+    balance = record["balance"]
+
+    if amount > 0:
+        transaction_type = "⬇️ Поповнення на"
+    else:
+        transaction_type = "⬆️ Списання"
+        
+    return f"{date_time}\n{transaction_type}: {amount} UAH\n💰Поточний баланс: {balance} UAH\n{category}\n{description}"
+    
 
 async def bank_check_loop(bot: Bot, allowed_users, bank_token, bank_account_token):
 
