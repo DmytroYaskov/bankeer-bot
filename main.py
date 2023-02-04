@@ -25,24 +25,20 @@ def gather_usefull_info(record={}):
     }
 
 def format_json_response(record):
-    unix_time = record["time"]
-    date_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
-    
-    description = record["description"]
-    
-    mcc = record["mcc"]
-    category = MCC.get_mcc(str(mcc)).usda_description
 
-    amount = record["amount"]
+    transaction_type = "⬇️ Поповнення на" if record["amount"] > 0 else "⬆️ Списання"
 
-    balance = record["balance"]
+    mcc_desc = MCC.get_mcc(str(record['mcc'])).usda_description
 
-    if amount > 0:
-        transaction_type = "⬇️ Поповнення на"
-    else:
-        transaction_type = "⬆️ Списання"
-        
-    return f"{date_time}\n{transaction_type}: {amount} UAH\n💰Поточний баланс: {balance} UAH\n{category}\n{description}"
+    description = record['description'].replace('\n', ' ')
+
+    return (
+        f"📆 {record['time']}\n"
+        f"{transaction_type}: {record['amount']} UAH\n"
+        f"💰 Поточний баланс: {record['balance']} UAH\n"
+        f"🏢 {mcc_desc}\n" #  
+        f"📃 Опис: {description}"
+    )
     
 
 async def bank_check_loop(bot: Bot, allowed_users, bank_token, bank_account_token):
@@ -60,7 +56,7 @@ async def bank_check_loop(bot: Bot, allowed_users, bank_token, bank_account_toke
 
                 records = await resp.json()
 
-                for record in records:
+                for record in reversed(records):
                     parsed_record = gather_usefull_info(record)
                     pretty_msg = format_json_response(parsed_record)
             
