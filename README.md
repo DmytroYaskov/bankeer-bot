@@ -1,1 +1,1 @@
-# mono-banker-bot
+# bankeer-bot
