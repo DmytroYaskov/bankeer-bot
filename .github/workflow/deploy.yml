@@ -1,0 +1,64 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout the repo 
+        uses: actions/checkout@v2
+
+      - name: Build and Publish to Github Packages Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+
+      - name: Build image 
+        run: docker build -t ${{github.repository}} .
+      
+      - name: Install doctl 
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DO Container Registry 
+        run: doctl registry login --expiry-seconds 600
+
+      - name: Get a registryURL
+        id: registryURL
+        run: 'echo \
+          "REGISTRY_URL=\
+          registry.digitalocean.com\
+          /secrets.REGISTRY\
+          /${${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}##*/}:\
+          ${{ github.event.inputs.version }}" \
+          >> $GITHUB_OUTPUT'
+
+      - name: Tag image 
+        run:
+          docker tag \
+          sample/my-page \
+          ${{ steps.registryURL.outputs.REGISTRY_URL }}
+
+      - name: Push image to DO Container Registry
+        run: docker push ${{ steps.registryURL.outputs.REGISTRY_URL }}
+
+      # - name: Deploy package to digitalocean
+      #   uses: appleboy/ssh-action@master
+      #   env:
+      #     GITHUB_USERNAME: ${{ secrets.USERNAME }}
+      #     GITHUB_TOKEN: ${{ secrets. GITHUB_TOKEN }}
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     port: ${{ secrets.DEPLOY_PORT }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_KEY }}
+      #     envs: GITHUB_USERNAME, GITHUB_TOKEN
+      #     script: |
+      #       docker stop containername
+      #       docker system prune -f
+      #       docker run --name containername -dit -p 3000:3000 ghcr.io/my_github_username/my_repository_name/my_image_name:latest
