@@ -26,7 +26,7 @@ jobs:
       - name: Get a newImageURL
         id: newImageURL
         env:
-          REGISTRY: ${{ secrets.REGISTRY }}
+          REGISTRY: ${{ secrets.DIGITALOCEAN_CONTAINER_REGISTRY }}
         run: 'echo "VALUE=\
           $(.github/workflows/genNewImageUrl.sh)\
           " >> $GITHUB_OUTPUT'
