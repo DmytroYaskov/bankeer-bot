@@ -6,6 +6,10 @@ on:
   release:
     types: [created]
 
+env:
+  REPO_NAME: ${${{ github.repository }}##*/}
+  COMMIT_ID: ${{ github.sha }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,8 +23,16 @@ jobs:
       - name: Build and Publish to Github Packages Registry
         uses: elgohr/Publish-Docker-Github-Action@master
 
+      - name: Get a newImageURL
+        id: newImageURL
+        env:
+          REGISTRY: ${{ secrets.REGISTRY }}
+        run: 'echo "VALUE=\
+          $(.github/workflows/genNewImageUrl.sh)\
+          " >> $GITHUB_OUTPUT'
+
       - name: Build image 
-        run: docker build -t ${{github.repository}} .
+        run: docker build -t ${{ steps.newImageURL.outputs.VALUE }} .
       
       - name: Install doctl 
         uses: digitalocean/action-doctl@v2
@@ -30,37 +42,22 @@ jobs:
       - name: Log in to DO Container Registry 
         run: doctl registry login --expiry-seconds 600
 
-      - name: Get a registryURL
-        id: registryURL
-        run: 'echo \
-          "REGISTRY_URL=\
-          registry.digitalocean.com\
-          /secrets.REGISTRY\
-          /${${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}##*/}:\
-          ${{ github.event.inputs.version }}" \
-          >> $GITHUB_OUTPUT'
-
-      - name: Tag image 
-        run:
-          docker tag \
-          sample/my-page \
-          ${{ steps.registryURL.outputs.REGISTRY_URL }}
-
       - name: Push image to DO Container Registry
-        run: docker push ${{ steps.registryURL.outputs.REGISTRY_URL }}
+        run: docker push ${{ steps.newImageURL.outputs.VALUE }}
 
       # - name: Deploy package to digitalocean
       #   uses: appleboy/ssh-action@master
-      #   env:
-      #     GITHUB_USERNAME: ${{ secrets.USERNAME }}
-      #     GITHUB_TOKEN: ${{ secrets. GITHUB_TOKEN }}
       #   with:
       #     host: ${{ secrets.DEPLOY_HOST }}
       #     port: ${{ secrets.DEPLOY_PORT }}
       #     username: ${{ secrets.DEPLOY_USER }}
       #     key: ${{ secrets.DEPLOY_KEY }}
-      #     envs: GITHUB_USERNAME, GITHUB_TOKEN
       #     script: |
-      #       docker stop containername
+      #       docker stop bankeer-bot
       #       docker system prune -f
-      #       docker run --name containername -dit -p 3000:3000 ghcr.io/my_github_username/my_repository_name/my_image_name:latest
+      #       docker run --name bankeer-bot -dit \
+      #              -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
+      #              -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
+      #              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\
+      #              -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
+      #              ${{ steps.newImageURL.outputs.VALUE }}
