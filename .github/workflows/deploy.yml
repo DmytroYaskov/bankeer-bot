@@ -24,9 +24,7 @@ jobs:
         id: newImageURL
         env:
           REGISTRY: ${{ secrets.DIGITALOCEAN_CONTAINER_REGISTRY }}
-        run: 'echo "VALUE=\
-          $(.github/workflows/genNewImageUrl.sh)\
-          " >> $GITHUB_OUTPUT'
+        run: 'echo "VALUE=$(.github/workflows/genNewImageUrl.sh)" >> $GITHUB_OUTPUT'
 
       - name: Build image 
         run: docker build -t ${{ steps.newImageURL.outputs.VALUE }} .
