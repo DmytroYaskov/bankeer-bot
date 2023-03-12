@@ -1,0 +1,63 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [created]
+
+env:
+  REPO_NAME: ${${{ github.repository }}##*/}
+  COMMIT_ID: ${{ github.sha }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout the repo 
+        uses: actions/checkout@v2
+
+      - name: Build and Publish to Github Packages Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+
+      - name: Get a newImageURL
+        id: newImageURL
+        env:
+          REGISTRY: ${{ secrets.DIGITALOCEAN_CONTAINER_REGISTRY }}
+        run: 'echo "VALUE=\
+          $(.github/workflows/genNewImageUrl.sh)\
+          " >> $GITHUB_OUTPUT'
+
+      - name: Build image 
+        run: docker build -t ${{ steps.newImageURL.outputs.VALUE }} .
+      
+      - name: Install doctl 
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DO Container Registry 
+        run: doctl registry login --expiry-seconds 600
+
+      - name: Push image to DO Container Registry
+        run: docker push ${{ steps.newImageURL.outputs.VALUE }}
+
+      # - name: Deploy package to digitalocean
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     port: ${{ secrets.DEPLOY_PORT }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_KEY }}
+      #     script: |
+      #       docker stop bankeer-bot
+      #       docker system prune -f
+      #       docker run --name bankeer-bot -dit \
+      #              -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
+      #              -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
+      #              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\
+      #              -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
+      #              ${{ steps.newImageURL.outputs.VALUE }}
