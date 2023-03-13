@@ -53,6 +53,6 @@ jobs:
       #       docker run --name bankeer-bot -dit \
       #              -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
       #              -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
-      #              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\
+      #              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\ 
       #              -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
       #              ${{ steps.newImageURL.outputs.VALUE }}
