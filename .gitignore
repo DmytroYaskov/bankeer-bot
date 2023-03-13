@@ -130,3 +130,7 @@ dmypy.json
 
 # aiotdlib
 .aiotdlib
+mono_libs/
+exports.sh
+test_creds.sh
+todo
