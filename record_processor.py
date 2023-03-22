@@ -7,25 +7,27 @@ def hide_sensitive(data, visible_symbols=4):
     tmp_str = '*' * (len(tmp_str) - visible_symbols) + tmp_str[-visible_symbols:]
     return tmp_str
 
-def initial_data_preprocessing(transaction):
+def initial_data_preprocessing(transaction, batch=False):
     """
     First stage of data preparation and formatting
     """
-    transaction_id = transaction["data"]["statementItem"]["id"]
+    json_data = transaction if batch else transaction["data"]["statementItem"]
+
+    transaction_id = json_data["id"]
     # transaction_time_unix = transaction["data"]["statementItem"]["time"]
-    transaction_time = datetime.fromtimestamp(transaction["data"]["statementItem"]["time"])
-    description = transaction["data"]["statementItem"]["description"]
-    mcc = transaction["data"]["statementItem"]["mcc"]
+    transaction_time = datetime.fromtimestamp(json_data["time"])
+    description = json_data["description"]
+    mcc = json_data["mcc"]
     # original_mcc = transaction["data"]["statementItem"]["originalMcc"]
 
     mcc_text = MCC.get_mcc(str(mcc)).usda_description
     # original_mcc_text = MCC.get_mcc(str(original_mcc)).usda_description
 
-    amount = transaction["data"]["statementItem"]["amount"] / 100
+    amount = json_data["amount"] / 100
     # operation_amount = transaction["data"]["statementItem"]["operationAmount"] / 100
     # currency_code = transaction["data"]["statementItem"]["currencyCode"]
     
-    balance = transaction["data"]["statementItem"]["balance"] / 100
+    balance = json_data["balance"] / 100
     
     return {
         "transaction_id": transaction_id,
@@ -36,7 +38,6 @@ def initial_data_preprocessing(transaction):
         "amount": amount,
         "balance": balance
     }
-
 
 def mono_json_response(record):
     date_time = record["transaction_time"].strftime('%Y-%m-%d %H:%M:%S')
