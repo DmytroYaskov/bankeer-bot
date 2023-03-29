@@ -36,19 +36,20 @@ jobs:
       - name: Push image to DO Container Registry
         run: docker push ${{ steps.newImageURL.outputs.VALUE }}
 
-      # - name: Deploy package to digitalocean
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: ${{ secrets.DEPLOY_HOST }}
-      #     port: ${{ secrets.DEPLOY_PORT }}
-      #     username: ${{ secrets.DEPLOY_USER }}
-      #     key: ${{ secrets.DEPLOY_KEY }}
-      #     script: |
-      #       docker stop bankeer-bot
-      #       docker system prune -f
-      #       docker run --name bankeer-bot -dit \
-      #              -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
-      #              -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
-      #              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\ 
-      #              -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
-      #              ${{ steps.newImageURL.outputs.VALUE }}
+      - name: Deploy package to digitalocean
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            docker stop bankeer-bot
+            docker rm bankeer-bot
+            docker run --name bankeer-bot -dit \
+                   -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
+                   -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
+                   -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\ 
+                   -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
+                   -e PUBLIC_HOST_ADDRESS=${{ secrets.PUBLIC_HOST_ADDRESS }}\
+                   -p 8080:8080
+                   ${{ steps.newImageURL.outputs.VALUE }}
