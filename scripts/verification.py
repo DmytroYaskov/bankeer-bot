@@ -25,4 +25,4 @@ async def auth_file(request):
 app = web.Application()
 app.add_routes([web.get(url, auth_file)])
 logging.info(f"Starting hosting of auth file under http://localhost{url}")
-web.run_app(app)
+web.run_app(app, port=80)
