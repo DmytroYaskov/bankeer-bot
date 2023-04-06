@@ -46,10 +46,12 @@ jobs:
             docker stop bankeer-bot
             docker rm bankeer-bot
             docker run --name bankeer-bot -dit \
+                  #  -v /host/path/to/certs:/certs
+                   -v ${{ secrets.CERTS_LOCATION }}:/certs
                    -e BANK_TOKEN=${{ secrets.BANK_TOKEN }}\
                    -e BANK_ACCOUNT_TOKEN=${{ secrets.BANK_ACCOUNT_TOKEN }}\
                    -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}\ 
                    -e ALLOWED_USERS=${{ secrets.ALLOWED_USERS }}\
                    -e PUBLIC_HOST_ADDRESS=${{ secrets.PUBLIC_HOST_ADDRESS }}\
-                   -p 8080:8080
+                   -p 433:8443
                    ${{ steps.newImageURL.outputs.VALUE }}

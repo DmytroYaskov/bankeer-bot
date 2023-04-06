@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import asyncio
+import ssl
 
 import iso18245 as MCC
 
@@ -33,6 +34,13 @@ class WebhookServer:
 
     def __init__(self, processing_callback) -> None:
 
+        self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        logging.info("!!!   " + str(os.listdir("./")))
+        self.ssl_context.load_cert_chain(
+            './certs/certificate.crt',
+            './certs/private.key'
+        )
+
         self.processing_callback = processing_callback
 
         self.app = web.Application()
@@ -46,7 +54,11 @@ class WebhookServer:
     async def start(self):
         await self.runner.setup()
 
-        self.site = web.TCPSite(self.runner, '0.0.0.0', 8080)
+        self.site = web.TCPSite(
+            self.runner,
+            '0.0.0.0', 8443,
+            ssl_context=self.ssl_context
+        )
 
         await self.site.start()
 
