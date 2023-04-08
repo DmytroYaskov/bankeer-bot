@@ -1,4 +1,13 @@
 import os
+import sys
+
+# ensure that Python can find all the needed modules in the project directory
+PROJECT_ROOT = os.path.abspath(os.path.join(
+                  os.path.dirname(__file__), 
+                  os.pardir)
+                )
+sys.path.append(PROJECT_ROOT)
+
 import json
 import logging
 import asyncio
@@ -7,48 +16,14 @@ import iso18245 as MCC
 
 from datetime       import datetime
 from telegram.ext   import Application
-from aiohttp        import web, ClientSession
+from aiohttp        import ClientSession
+
+from webhook import WebhookServer
 
 def hide_sensitive(data, visible_symbols = 4):
     tmp_str = str(data)
     tmp_str = '*' * (len(tmp_str) - visible_symbols) + tmp_str[-visible_symbols:]
     return tmp_str
-
-class WebhookServer:
-
-    async def get_connection(self, request):
-        logging.info("Received webhook confirmation request!")
-        return web.Response(text="Success", status=200)
-
-    async def post_transaction_data(self, request):
-        data = await request.json()
-
-        logging.info(data)
-
-        asyncio.create_task(
-            self.processing_callback(data)
-        )
-
-        return web.Response(text="Success", status=200)
-
-    def __init__(self, processing_callback) -> None:
-
-        self.processing_callback = processing_callback
-
-        self.app = web.Application()
-        # self.app.add_routes(self.routes)
-
-        self.app.add_routes([web.get('/', self.get_connection),
-                             web.post('/', self.post_transaction_data)])
-
-        self.runner = web.AppRunner(self.app)
-
-    async def start(self):
-        await self.runner.setup()
-
-        self.site = web.TCPSite(self.runner, '0.0.0.0', 8080)
-
-        await self.site.start()
 
 class BankeerBot:
 
