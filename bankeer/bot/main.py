@@ -14,8 +14,10 @@ from telegram.ext import Application
 
 from datetime import datetime
 
-from db_commands import write_transactions_data
-from record_processor import initial_data_preprocessing, hide_sensitive, mono_json_response
+# from db_commands import write_transactions_data
+from modules.record_processor import initial_data_preprocessing, hide_sensitive, mono_json_response
+
+from modules.stats import stats
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,13 +36,15 @@ logging.info(f"ALLOWED_USERS: { [hide_sensitive(user, 3) for user in ALLOWED_USE
 # ============ client server for webhook [beg] ============
 routes = web.RouteTableDef()
 
-async def processing(data):
-    if data["data"]["account"] == BANK_ACCOUNT_TOKEN:
-        preprocessed_record = initial_data_preprocessing(data)
-        mono_formatted_record = mono_json_response(preprocessed_record)
-        await write_transactions_data(preprocessed_record)
-        await send_tg(mono_formatted_record)
-        logging.info("✅ Data was initially preprocessed written to DB")
+async def processing(data=None):
+    # if data["data"]["account"] == BANK_ACCOUNT_TOKEN:
+    #     preprocessed_record = initial_data_preprocessing(data)
+    #     mono_formatted_record = mono_json_response(preprocessed_record)
+    #     await write_transactions_data(preprocessed_record)
+    # await send_tg(mono_formatted_record)
+    await send_tg(stats())
+
+    logging.info("✅ Data was initially preprocessed written to DB")
 
 @routes.get("/transactionData")
 async def get_connection(request):
@@ -57,21 +61,21 @@ async def get_transaction_data(request):
     return web.Response(text="Success", status=200)
 
 
-app = web.Application()
-app.add_routes(routes)
+# app = web.Application()
+# app.add_routes(routes)
 
 
-async def run_app():
-    # await web.run_app(app)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, 'localhost', 8080)
-    await site.start()
+# async def run_app():
+#     # await web.run_app(app)
+#     runner = web.AppRunner(app)
+#     await runner.setup()
+#     site = web.TCPSite(runner, 'localhost', 8080)
+#     await site.start()
 
-    # asyncio.get_event_loop().run_forever()
-    # await app
+#     # asyncio.get_event_loop().run_forever()
+#     # await app
 
-    await asyncio.sleep(99999)
+#     await asyncio.sleep(99999)
 
 
 async def enable_webhook(client_url):
@@ -88,18 +92,37 @@ async def run_webhook():
     logging.info("✅ Webhook is now connected to the client server!")
 # ============ client server for webhook [end] ============
 
+# async def send_picture(path):
+
+
+
+
 
 async def send_tg(pretty_msg):
 
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     for user_id in ALLOWED_USERS:
-        await application.bot.send_message(
-            chat_id=user_id,
-            text=pretty_msg
-        )
+        # await application.bot.send_message(
+        #     chat_id=user_id,
+        #     text=pretty_msg,
+        #     parse_mode="html"
+        # )
 
-    logging.info("✅ Sent message to users")
+        with open("tmp/groupby_cat_table.png", "rb") as f:
+
+            await application.bot.send_photo(
+                            chat_id=user_id,
+                            photo=f
+                        )
+            
+        
+        logging.info("✅ Sent message to users")
+
+    os.remove("tmp/groupby_cat_table.png")
+    
+
+        # 
 
 #     # last_checked_timestamp = datetime(2023, 1, 29, 0, 0, 0)
 
@@ -154,9 +177,10 @@ async def send_tg(pretty_msg):
 
 async def main():
     await asyncio.gather(
-        run_app(),
+        # run_app(),
         # app,
-        run_webhook()
+        # run_webhook(),
+        processing()
     )
 
 

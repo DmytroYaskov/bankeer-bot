@@ -131,6 +131,11 @@ dmypy.json
 # aiotdlib
 .aiotdlib
 mono_libs/
-exports.sh
-test_creds.sh
-todo
+creds/exports.sh
+creds/test_creds.sh
+
+bankeer/db/CashFlow.db
+bankeer/analytics/todo
+
+.DS_Store
+bankeer/.DS_Store
